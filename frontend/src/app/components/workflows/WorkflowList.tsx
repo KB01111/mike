@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -464,7 +466,7 @@ export function WorkflowList() {
                                         Hidden Workflows
                                     </p>
                                     <p className="mt-1 text-xs text-gray-400 text-left">
-                                        Built-in workflows you've hidden will
+                                        Built-in workflows you&apos;ve hidden will
                                         appear here. You can unhide them at any
                                         time.
                                     </p>

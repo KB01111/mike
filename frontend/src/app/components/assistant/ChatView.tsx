@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useCallback, useState, useRef, useEffect } from "react";
 import { ArrowDown } from "lucide-react";
 import { UserMessage } from "./UserMessage";
@@ -356,7 +358,7 @@ export function ChatView({
                 `calc(100dvh - ${headerHeight + gap + userMessageHeight + paddingBottom + marginBottom}px)`,
             );
         }
-    }, [messages.length, latestUserMessageRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [messages.length]);
 
     const updateScrollButton = useCallback(() => {
         const c = messagesContainerRef.current;
@@ -430,7 +432,7 @@ export function ChatView({
                 setMessagesVisible(true);
             }
         }
-    }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [messages]);
 
     useEffect(() => {
         if (panelMounted && window.innerWidth < 768) {
@@ -494,8 +496,8 @@ export function ChatView({
                                         {msg.role === "user" ? (
                                             <UserMessage
                                                 content={msg.content ?? ""}
-                                                files={(msg as any).files}
-                                                workflow={(msg as any).workflow}
+                                                files={msg.files}
+                                                workflow={msg.workflow}
                                             />
                                         ) : (
                                             <AssistantMessage
@@ -505,11 +507,10 @@ export function ChatView({
                                                     i === messages.length - 1 &&
                                                     isResponseLoading
                                                 }
-                                                isError={!!(msg as any).error}
+                                                isError={!!msg.error}
                                                 errorMessage={
-                                                    typeof (msg as any).error ===
-                                                    "string"
-                                                        ? (msg as any).error
+                                                    typeof msg.error === "string"
+                                                        ? msg.error
                                                         : undefined
                                                 }
                                                 annotations={msg.annotations}

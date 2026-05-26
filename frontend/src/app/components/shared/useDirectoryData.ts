@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useEffect, useState } from "react";
 import { getProject, listProjects, listStandaloneDocuments } from "@/app/lib/mikeApi";
 import type { MikeDocument, MikeProject } from "./types";

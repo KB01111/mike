@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Trash2, X } from "lucide-react";

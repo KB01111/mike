@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useId, useRef, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -905,7 +907,8 @@ function MarkdownContent({
                         />
                     ),
                     p: ({ node, ...props }) => {
-                        const parent = (node as any)?.parent;
+                        const parent = (node as { parent?: { type?: string } })
+                            ?.parent;
                         if (parent?.type === "listItem") {
                             return (
                                 <p

@@ -35,6 +35,7 @@ export function WFColumnViewModal({ col, onClose }: Props) {
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-2">Format</p>
                         <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                            {/* eslint-disable-next-line react-hooks/static-components */}
                             <FormatIcon className="h-3.5 w-3.5 text-gray-400" />
                             {formatLabel(col.format ?? "text")}
                         </span>

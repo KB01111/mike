@@ -43,6 +43,7 @@ import type {
     MikeFolder,
     MikeProject,
     MikeChat,
+    ColumnConfig,
     TabularReview,
 } from "@/app/components/shared/types";
 import { ToolbarTabs } from "@/app/components/shared/ToolbarTabs";
@@ -532,7 +533,7 @@ export function ProjectPage({ projectId, initialTab = "documents" }: Props) {
         title: string,
         _projectId?: string,
         documentIds?: string[],
-        columnsConfig?: any,
+        columnsConfig?: ColumnConfig[] | null,
     ) {
         setCreatingReview(true);
         try {
