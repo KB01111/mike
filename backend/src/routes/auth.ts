@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPasswordHash,
+  getSessionSecret,
   normalizeEmail,
   signSessionToken,
   verifyPassword,
@@ -29,6 +30,7 @@ function sessionResponse(row: { id: string; email: string }) {
       userId: row.id,
       email: row.email,
       expiresInSeconds: SESSION_TTL_SECONDS,
+      secret: getSessionSecret(),
     }),
     user: publicUser(row),
   };
@@ -82,13 +84,17 @@ async function claimLegacyDataByEmail(email: string, userId: string) {
     "tabular_reviews",
     "tabular_review_chats",
   ];
-  await Promise.all(
-    userOwnedTables.flatMap((table) =>
-      legacyIds.map((legacyId) =>
-        db.from(table).update({ user_id: userId }).eq("user_id", legacyId),
-      ),
-    ),
-  );
+
+  // Perform updates sequentially with error handling
+  const errors: string[] = [];
+  for (const table of userOwnedTables) {
+    for (const legacyId of legacyIds) {
+      const { error } = await db.from(table).update({ user_id: userId }).eq("user_id", legacyId);
+      if (error) {
+        errors.push(`Failed to update ${table} for legacy user ${legacyId}: ${error.message}`);
+      }
+    }
+  }
 
   const existingProfile = await db
     .from("user_profiles")
@@ -96,28 +102,38 @@ async function claimLegacyDataByEmail(email: string, userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
   if (!existingProfile.data) {
-    await Promise.all(
-      legacyIds.map((legacyId) =>
-        db
-          .from("user_profiles")
-          .update({ user_id: userId, updated_at: new Date().toISOString() })
-          .eq("user_id", legacyId),
-      ),
-    );
+    for (const legacyId of legacyIds) {
+      const { error } = await db
+        .from("user_profiles")
+        .update({ user_id: userId, updated_at: new Date().toISOString() })
+        .eq("user_id", legacyId);
+      if (error) {
+        errors.push(`Failed to update user_profiles for legacy user ${legacyId}: ${error.message}`);
+      }
+    }
   }
 
-  await Promise.all(
-    legacyIds.map((legacyId) =>
-      db
-        .from("workflow_shares")
-        .update({ shared_by_user_id: userId })
-        .eq("shared_by_user_id", legacyId),
-    ),
-  );
-  await db
+  for (const legacyId of legacyIds) {
+    const { error } = await db
+      .from("workflow_shares")
+      .update({ shared_by_user_id: userId })
+      .eq("shared_by_user_id", legacyId);
+    if (error) {
+      errors.push(`Failed to update workflow_shares for legacy user ${legacyId}: ${error.message}`);
+    }
+  }
+
+  const { error: mapError } = await db
     .from("legacy_user_map")
     .update({ claimed_user_id: userId, claimed_at: new Date().toISOString() })
     .eq("email", email);
+  if (mapError) {
+    errors.push(`Failed to update legacy_user_map: ${mapError.message}`);
+  }
+
+  if (errors.length > 0) {
+    console.error("[auth] Legacy data migration had errors:", errors);
+  }
 }
 
 authRouter.post("/signup", async (req, res) => {

@@ -9,7 +9,7 @@
         "lint": "eslint",
         "tauri": "tauri",
         "desktop:dev": "tauri dev",
-        "desktop:build": "tauri build",
+        "desktop:build": "npm run desktop:prepare-sidecar && tauri build",
         "desktop:prepare-sidecar": "node scripts/prepare-tauri-sidecar.mjs",
         "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
         "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

@@ -166,13 +166,18 @@ async function upsertLegacyUsers(
       unresolved.push(user);
       continue;
     }
-    const result = await client.query(
-      `insert into "legacy_user_map" ("legacy_user_id", "email")
-       values ($1, lower($2))
-       on conflict ("legacy_user_id") do update set "email" = excluded."email"`,
-      [user.id, user.email],
-    );
-    imported += result.rowCount ?? 0;
+    try {
+      const result = await client.query(
+        `insert into "legacy_user_map" ("legacy_user_id", "email")
+         values ($1, lower($2))
+         on conflict ("legacy_user_id") do update set "email" = excluded."email"`,
+        [user.id, user.email],
+      );
+      imported += result.rowCount ?? 0;
+    } catch (error) {
+      console.error(`[migration] Failed to upsert legacy user ${user.id} (${user.email}):`, error);
+      unresolved.push(user);
+    }
   }
   return { imported, unresolved };
 }
@@ -345,6 +350,9 @@ async function main() {
       skipped: 0,
       failed: legacy.unresolved.length,
     };
+    if (legacy.unresolved.length > 0) {
+      console.warn(`[migration] ${legacy.unresolved.length} legacy users could not be imported:`, legacy.unresolved.map(u => ({ id: u.id, email: u.email })));
+    }
 
     for (const table of TABLES) {
       const rows = await fetchTable(table);

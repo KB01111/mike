@@ -130,7 +130,8 @@ export function verifySessionToken(
     const parsed = JSON.parse(b64urlDecode(payload).toString("utf8")) as
       | SessionPayload
       | null;
-    if (!parsed?.userId || !parsed.email || !parsed.exp) return null;
+    if (!parsed?.userId || !parsed.email) return null;
+    if (typeof parsed.exp !== "number" || !isFinite(parsed.exp)) return null;
     if (parsed.exp <= Math.floor(Date.now() / 1000)) return null;
     return {
       userId: parsed.userId,

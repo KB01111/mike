@@ -9,6 +9,7 @@ import {
   normalizeApiKeyProvider,
   saveUserApiKey,
 } from "../lib/userApiKeys";
+import { deleteFile, storageEnabled } from "../lib/storage";
 
 export const userRouter = Router();
 
@@ -257,27 +258,59 @@ userRouter.put("/api-keys/:provider", requireAuth, async (req, res) => {
 userRouter.delete("/account", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
   const db = createServerSupabase();
-  const deletions = [
-    () => db.from("user_api_keys").delete().eq("user_id", userId),
-    () => db.from("user_profiles").delete().eq("user_id", userId),
-    () => db.from("hidden_workflows").delete().eq("user_id", userId),
-    () => db.from("workflow_shares").delete().eq("shared_by_user_id", userId),
-    () => db.from("tabular_review_chats").delete().eq("user_id", userId),
-    () => db.from("tabular_reviews").delete().eq("user_id", userId),
-    () => db.from("chats").delete().eq("user_id", userId),
-    () => db.from("documents").delete().eq("user_id", userId),
-    () => db.from("project_subfolders").delete().eq("user_id", userId),
-    () => db.from("projects").delete().eq("user_id", userId),
-    () => db.from("workflows").delete().eq("user_id", userId),
-    () =>
-      db
-        .from("legacy_user_map")
-        .update({ claimed_user_id: null, claimed_at: null })
-        .eq("claimed_user_id", userId),
+
+  // First, query documents to get storage keys before deletion
+  let storageKeys: string[] = [];
+  if (storageEnabled) {
+    const { data: documents, error: documentsQueryError } = await db
+      .from("documents")
+      .select("storage_path, pdf_storage_path")
+      .eq("user_id", userId);
+    if (documentsQueryError) {
+      console.error(`[user/account] Failed to query documents for user ${userId}:`, documentsQueryError);
+      return void res.status(500).json({ detail: documentsQueryError.message });
+    }
+    if (documents && Array.isArray(documents)) {
+      for (const doc of documents as Array<{ storage_path?: string | null; pdf_storage_path?: string | null }>) {
+        if (doc.storage_path) storageKeys.push(doc.storage_path);
+        if (doc.pdf_storage_path) storageKeys.push(doc.pdf_storage_path);
+      }
+    }
+
+    // Delete storage objects before deleting DB rows
+    for (const key of storageKeys) {
+      try {
+        await deleteFile(key);
+      } catch (storageError) {
+        console.error(`[user/account] Failed to delete storage key ${key}:`, storageError);
+        return void res.status(500).json({
+          detail: `Failed to delete storage object: ${storageError instanceof Error ? storageError.message : String(storageError)}`,
+        });
+      }
+    }
+  }
+
+  // Perform all deletions/updates sequentially; if any fail, return error immediately
+  // This provides basic consistency by halting on first error
+  const operations = [
+    { name: "user_api_keys", fn: () => db.from("user_api_keys").delete().eq("user_id", userId) },
+    { name: "user_profiles", fn: () => db.from("user_profiles").delete().eq("user_id", userId) },
+    { name: "hidden_workflows", fn: () => db.from("hidden_workflows").delete().eq("user_id", userId) },
+    { name: "workflow_shares", fn: () => db.from("workflow_shares").delete().eq("shared_by_user_id", userId) },
+    { name: "tabular_review_chats", fn: () => db.from("tabular_review_chats").delete().eq("user_id", userId) },
+    { name: "tabular_reviews", fn: () => db.from("tabular_reviews").delete().eq("user_id", userId) },
+    { name: "chats", fn: () => db.from("chats").delete().eq("user_id", userId) },
+    { name: "documents", fn: () => db.from("documents").delete().eq("user_id", userId) },
+    { name: "project_subfolders", fn: () => db.from("project_subfolders").delete().eq("user_id", userId) },
+    { name: "projects", fn: () => db.from("projects").delete().eq("user_id", userId) },
+    { name: "workflows", fn: () => db.from("workflows").delete().eq("user_id", userId) },
+    { name: "legacy_user_map", fn: () => db.from("legacy_user_map").update({ claimed_user_id: null, claimed_at: null }).eq("claimed_user_id", userId) },
   ];
-  for (const deletion of deletions) {
-    const result = await deletion();
+
+  for (const operation of operations) {
+    const result = await operation.fn();
     if (result.error) {
+      console.error(`[user/account] Failed to delete ${operation.name} for user ${userId}:`, result.error);
       return void res.status(500).json({ detail: result.error.message });
     }
   }

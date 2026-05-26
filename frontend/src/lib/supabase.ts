@@ -62,7 +62,11 @@ function writeSession(session: LocalSession | null): void {
 
 function emit(event: AuthChangeEvent, session: LocalSession | null): void {
     for (const callback of subscribers) {
-        callback(event, session);
+        try {
+            callback(event, session);
+        } catch (error) {
+            console.error("[supabase] Subscriber callback error:", error);
+        }
     }
 }
 
@@ -214,16 +218,16 @@ export const supabase = {
                 }
                 return { data: { user: nextSession.user }, error: null };
             } catch (error) {
-                if (!token) {
+                const authError = error instanceof Error ? (error as AuthError) : makeAuthError(String(error));
+                const status = authError.status;
+                // Only sign out for explicit token rejection (401/403)
+                if (!token && (status === 401 || status === 403)) {
                     writeSession(null);
                     emit("SIGNED_OUT", null);
                 }
                 return {
                     data: { user: null },
-                    error:
-                        error instanceof Error
-                            ? (error as AuthError)
-                            : makeAuthError(String(error)),
+                    error: authError,
                 };
             }
         },

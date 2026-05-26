@@ -60,6 +60,13 @@ run(bin("npm"), ["run", "build"], {
     },
 });
 
+const serverJsPath = path.join(projectRoot, ".next", "standalone", "server.js");
+if (!fs.existsSync(serverJsPath)) {
+    console.error(`ERROR: Expected build output not found: ${serverJsPath}`);
+    console.error("The Next.js standalone build did not produce server.js");
+    process.exit(1);
+}
+
 copyIfExists(
     path.join(projectRoot, ".next", "static"),
     path.join(projectRoot, ".next", "standalone", ".next", "static"),

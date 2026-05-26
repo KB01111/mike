@@ -169,14 +169,31 @@ class PostgresQueryBuilder
   ) {}
 
   select(columns = "*", options?: SelectOptions): this {
+    const sanitized = this.sanitizeSelectColumns(columns);
     if (this.action === "insert" || this.action === "update" || this.action === "upsert") {
-      this.returningColumns = columns;
+      this.returningColumns = sanitized;
     } else {
       this.action = "select";
-      this.selectColumns = columns;
+      this.selectColumns = sanitized;
       this.selectOptions = options;
     }
     return this;
+  }
+
+  private sanitizeSelectColumns(columns: string): string {
+    if (columns.trim() === "*") return "*";
+    const tokens = columns.split(",").map((token) => token.trim());
+    const validated: string[] = [];
+    for (const token of tokens) {
+      if (token === "*") {
+        validated.push("*");
+      } else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(token)) {
+        validated.push(quoteIdent(token));
+      } else {
+        throw new Error(`Invalid column identifier: ${token}`);
+      }
+    }
+    return validated.join(", ");
   }
 
   insert(values: DbRow | DbRow[]): this {

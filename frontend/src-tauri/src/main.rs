@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::net::TcpStream;
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{Manager, path::BaseDirectory};
 use tauri_plugin_shell::{
     process::{CommandChild, CommandEvent},
@@ -8,6 +10,23 @@ use tauri_plugin_shell::{
 };
 
 struct NextSidecar(Mutex<Option<CommandChild>>);
+
+fn wait_for_server(host: &str, port: u16, max_attempts: u32) -> Result<(), String> {
+    let addr = format!("{}:{}", host, port);
+    for attempt in 1..=max_attempts {
+        if let Ok(_stream) = TcpStream::connect_timeout(
+            &addr.parse().map_err(|e| format!("Invalid address: {}", e))?,
+            Duration::from_millis(100),
+        ) {
+            println!("[next-sidecar] Server ready on {}", addr);
+            return Ok(());
+        }
+        if attempt < max_attempts {
+            std::thread::sleep(Duration::from_millis(200));
+        }
+    }
+    Err(format!("Server did not become ready on {} after {} attempts", addr, max_attempts))
+}
 
 fn main() {
     tauri::Builder::default()
@@ -42,6 +61,9 @@ fn main() {
                         }
                     }
                 });
+
+                // Wait for the Next.js server to be ready before continuing
+                wait_for_server("127.0.0.1", 3070, 50)?;
             }
 
             Ok(())

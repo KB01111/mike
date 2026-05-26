@@ -72,6 +72,12 @@ const uploadLimiter = makeLimiter({
   message: "Too many upload requests. Please try again later.",
 });
 
+const authLimiter = makeLimiter({
+  windowMs: minutes(envInt("RATE_LIMIT_AUTH_WINDOW_MINUTES", 15)),
+  max: envInt("RATE_LIMIT_AUTH_MAX", 10),
+  message: "Too many authentication requests. Please try again later.",
+});
+
 app.disable("x-powered-by");
 app.set("trust proxy", envInt("TRUST_PROXY_HOPS", 1));
 
@@ -110,7 +116,7 @@ app.post("/single-documents", uploadLimiter);
 app.post("/single-documents/:documentId/versions", uploadLimiter);
 app.post("/projects/:projectId/documents", uploadLimiter);
 
-app.use("/auth", authRouter);
+app.use("/auth", authLimiter, authRouter);
 app.use("/chat", chatRouter);
 app.use("/projects", projectsRouter);
 app.use("/projects/:projectId/chat", projectChatRouter);
