@@ -34,8 +34,17 @@ function b64urlDecode(value: string): Buffer {
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Pad to equal length so the full comparison still runs
+    const maxLen = Math.max(bufA.length, bufB.length);
+    const paddedA = Buffer.concat([bufA, Buffer.alloc(maxLen - bufA.length)]);
+    const paddedB = Buffer.concat([bufB, Buffer.alloc(maxLen - bufB.length)]);
+    crypto.timingSafeEqual(paddedA, paddedB); // run to avoid timing leak
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 function passwordPepper(): string {
