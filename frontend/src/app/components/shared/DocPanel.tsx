@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { mikeAuth } from "@/lib/mikeAuth";
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
 import { applyOptimisticResolution } from "../assistant/EditCard";
 import { DocView } from "./DocView";
 import { DocxView } from "./DocxView";
@@ -359,9 +360,7 @@ function EditResolveButtons({
                     data: { session },
                 } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
-                const apiBase =
-                    process.env.NEXT_PUBLIC_API_BASE_URL ??
-                    "http://localhost:3001";
+                const apiBase = getMikeApiBaseUrl();
                 const resp = await fetch(
                     `${apiBase}/single-documents/${edit.document_id}/edits/${edit.edit_id}/${verb}`,
                     {
@@ -461,8 +460,7 @@ function DownloadButton({
                 data: { session },
             } = await mikeAuth.auth.getSession();
             const token = session?.access_token;
-            const apiBase =
-                process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+            const apiBase = getMikeApiBaseUrl();
             const qs = versionId
                 ? `?version_id=${encodeURIComponent(versionId)}`
                 : "";

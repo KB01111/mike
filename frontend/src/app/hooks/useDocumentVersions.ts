@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { mikeAuth } from "@/lib/mikeAuth";
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
 
 export interface DocumentVersionRow {
     id: string;
@@ -56,9 +57,7 @@ export function useDocumentVersions(
                     data: { session },
                 } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
-                const apiBase =
-                    process.env.NEXT_PUBLIC_API_BASE_URL ??
-                    "http://localhost:3001";
+                const apiBase = getMikeApiBaseUrl();
                 const resp = await fetch(
                     `${apiBase}/single-documents/${documentId}/versions`,
                     {

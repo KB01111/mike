@@ -53,10 +53,25 @@ function copyIfExists(source, destination) {
     fs.cpSync(source, destination, { recursive: true, force: true });
 }
 
+const desktopApiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL || process.env.MIKE_DESKTOP_API_BASE_URL;
+
+if (!desktopApiBase) {
+    console.error(
+        "ERROR: Set NEXT_PUBLIC_API_BASE_URL or MIKE_DESKTOP_API_BASE_URL before building Mike desktop.",
+    );
+    console.error(
+        "Example: $env:MIKE_DESKTOP_API_BASE_URL='https://api.example.com'; npm run desktop:build",
+    );
+    process.exit(1);
+}
+
 run(bin("npm"), ["run", "build"], {
     env: {
         ...process.env,
         MIKE_DESKTOP_BUILD: "1",
+        NEXT_PUBLIC_MIKE_DESKTOP_BUILD: "1",
+        NEXT_PUBLIC_API_BASE_URL: desktopApiBase,
     },
 });
 

@@ -4,6 +4,7 @@
  */
 
 import { mikeAuth } from "@/lib/mikeAuth";
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
 import type {
     AssistantEvent,
     MikeChat,
@@ -34,8 +35,7 @@ interface ServerChatDetailOut {
     messages: ServerMessage[];
 }
 
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const API_BASE = getMikeApiBaseUrl();
 
 async function getAuthHeader(): Promise<Record<string, string>> {
     const {

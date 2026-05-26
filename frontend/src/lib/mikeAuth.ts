@@ -1,3 +1,5 @@
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
+
 type AuthChangeEvent =
     | "INITIAL_SESSION"
     | "SIGNED_IN"
@@ -19,8 +21,7 @@ type AuthError = Error & { status?: number };
 
 type AuthCallback = (event: AuthChangeEvent, session: LocalSession | null) => void;
 
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const API_BASE = getMikeApiBaseUrl();
 const STORAGE_KEY = "mike.auth.session";
 const subscribers = new Set<AuthCallback>();
 

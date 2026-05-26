@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { mikeAuth } from "@/lib/mikeAuth";
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
 
 export interface FetchDocxResult {
     bytes: ArrayBuffer | null;
@@ -63,8 +64,7 @@ export function useFetchDocxBytes(
         }
 
         const key = cacheKey(documentId, versionId, refetchKey);
-        const apiBase =
-            process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+        const apiBase = getMikeApiBaseUrl();
         const qs = versionId
             ? `?version_id=${encodeURIComponent(versionId)}`
             : "";

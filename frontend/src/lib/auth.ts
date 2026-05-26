@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
+import { getMikeApiBaseUrl } from "@/lib/apiBase";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const API_BASE = getMikeApiBaseUrl();
 
 /**
  * Extract and validate user from a Mike bearer session token.
