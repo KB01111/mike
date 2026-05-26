@@ -6,6 +6,6 @@ Object.setPrototypeOf(request, RawRequest.prototype);
 Object.setPrototypeOf(response, RawResponse.prototype);
 
 export const expressApp = api.raw(
-  { expose: true, method: "*", path: "/!rest", bodyLimit: 2 * 1024 * 1024 },
+  { expose: true, method: "*", path: "/!rest", bodyLimit: 100 * 1024 * 1024 },
   app,
 );
