@@ -8,12 +8,12 @@ documents only.
 
 Create separate test resources for Mike:
 
-- a throwaway Supabase project
+- a throwaway Encore Cloud app and database
 - a throwaway S3-compatible storage bucket, such as Cloudflare R2
 - disposable model-provider API keys with low spending limits
 - a test email account
 
-Do not use production Supabase projects, production storage buckets, firm API
+Do not use production Encore apps, production storage buckets, firm API
 keys, or real client documents for initial testing.
 
 ## Keep Secrets Out of the Frontend
@@ -24,15 +24,15 @@ the browser. Service-role keys and model-provider keys should stay server-side.
 For frontend testing, `frontend/.env.local` should normally contain only:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-supabase-anon-key
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 ```
 
-Keep the Supabase service-role key in `backend/.env` only:
+Keep backend-only secrets in `backend/.env` only:
 
 ```env
-SUPABASE_SECRET_KEY=your-supabase-service-role-key
+AUTH_JWT_SECRET=replace-with-a-random-32-byte-hex-string
+DOWNLOAD_SIGNING_SECRET=replace-with-a-random-32-byte-hex-string
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
 ```
 
 Model-provider keys such as `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, and
@@ -67,7 +67,7 @@ output.
 If you do not want to use model-provider keys yet, use dummy provider values and
 test only the non-LLM flows first:
 
-- account creation against a test Supabase project
+- account creation against the Encore-backed local auth endpoints
 - project creation
 - file upload with synthetic documents
 - folder organization
@@ -81,7 +81,7 @@ with synthetic documents.
 After testing, delete:
 
 - uploaded objects from the storage bucket
-- test Supabase rows or the whole test Supabase project
+- test Encore database rows or the whole test Encore app/database
 - disposable model-provider keys
 - local `.env` files that contain secrets
 

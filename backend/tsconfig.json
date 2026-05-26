@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "ignoreDeprecations": "5.0",
     "outDir": "./dist",
     "rootDir": "./src",
@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "types": ["node", "express", "cors", "multer"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "~encore/*": ["./encore.gen/*"]
     }
   },
   "include": ["src/**/*"],

@@ -7,6 +7,7 @@
  *   R2_ACCESS_KEY_ID    — R2 API token (Access Key ID)
  *   R2_SECRET_ACCESS_KEY — R2 API token (Secret Access Key)
  *   R2_BUCKET_NAME      — bucket name (default: "mike")
+ *   R2_KEY_PREFIX       — optional physical object prefix, e.g. "mike-v2"
  */
 
 import {
@@ -16,6 +17,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl as awsGetSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { r2PhysicalKey } from "./storagePaths";
 
 let cachedClient: S3Client | undefined;
 
@@ -64,7 +66,7 @@ export async function uploadFile(
   await client.send(
     new PutObjectCommand({
       Bucket: BUCKET,
-      Key: key,
+      Key: r2PhysicalKey(key),
       Body: Buffer.from(content),
       ContentType: contentType,
     }),
@@ -80,7 +82,7 @@ export async function downloadFile(key: string): Promise<ArrayBuffer | null> {
   try {
     const client = getClient();
     const response = await client.send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+      new GetObjectCommand({ Bucket: BUCKET, Key: r2PhysicalKey(key) }),
     );
     if (!response.Body) return null;
     const bytes = await response.Body.transformToByteArray();
@@ -97,7 +99,9 @@ export async function downloadFile(key: string): Promise<ArrayBuffer | null> {
 export async function deleteFile(key: string): Promise<void> {
   if (!storageEnabled) return;
   const client = getClient();
-  await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  await client.send(
+    new DeleteObjectCommand({ Bucket: BUCKET, Key: r2PhysicalKey(key) }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +125,7 @@ export async function getSignedUrl(
       : undefined;
     const command = new GetObjectCommand({
       Bucket: BUCKET,
-      Key: key,
+      Key: r2PhysicalKey(key),
       ResponseContentDisposition: responseContentDisposition,
     });
     return await awsGetSignedUrl(client, command, { expiresIn });

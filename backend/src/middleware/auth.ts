@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { createClient } from "@supabase/supabase-js";
+import { getSessionSecret, verifySessionToken } from "../lib/localAuth";
 
 export async function requireAuth(
   req: Request,
@@ -13,25 +13,20 @@ export async function requireAuth(
   }
   const token = auth.slice(7).trim();
 
-  const supabaseUrl = process.env.SUPABASE_URL ?? "";
-  const serviceKey = process.env.SUPABASE_SECRET_KEY ?? "";
-
-  if (!supabaseUrl || !serviceKey) {
+  let verified: ReturnType<typeof verifySessionToken>;
+  try {
+    verified = verifySessionToken(token, getSessionSecret());
+  } catch {
     res.status(500).json({ detail: "Server auth is not configured" });
     return;
   }
-
-  const admin = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false },
-  });
-  const { data } = await admin.auth.getUser(token);
-  if (!data.user) {
+  if (!verified) {
     res.status(401).json({ detail: "Invalid or expired token" });
     return;
   }
 
-  res.locals.userId = data.user.id;
-  res.locals.userEmail = data.user.email?.toLowerCase() ?? "";
+  res.locals.userId = verified.userId;
+  res.locals.userEmail = verified.email;
   res.locals.token = token;
   next();
 }

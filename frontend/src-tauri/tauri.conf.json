@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Mike",
+  "version": "0.1.0",
+  "identifier": "com.mikeoss.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run desktop:prepare-sidecar",
+    "frontendDist": "http://127.0.0.1:3070"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mike",
+        "width": 1280,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": ["binaries/mike-next-sidecar"],
+    "resources": {
+      "../.next/standalone/": ".next/standalone/"
+    }
+  }
+}

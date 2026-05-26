@@ -9,6 +9,7 @@ import {
   normalizeApiKeyProvider,
   saveUserApiKey,
 } from "../lib/userApiKeys";
+import { deleteFile, storageEnabled } from "../lib/storage";
 
 export const userRouter = Router();
 
@@ -257,6 +258,79 @@ userRouter.put("/api-keys/:provider", requireAuth, async (req, res) => {
 userRouter.delete("/account", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
   const db = createServerSupabase();
+
+  // First, query document_versions to get storage keys before deletion
+  let storageKeys: string[] = [];
+  if (storageEnabled) {
+    // First get document IDs for the user
+    const { data: userDocs, error: docsQueryError } = await db
+      .from("documents")
+      .select("id")
+      .eq("user_id", userId);
+
+    if (docsQueryError) {
+      console.error(`[user/account] Failed to query documents for user ${userId}:`, docsQueryError);
+      return void res.status(500).json({ detail: docsQueryError.message });
+    }
+
+    const documentIds = userDocs?.map((doc) => doc.id) ?? [];
+
+    // Then query document_versions for those documents
+    const { data: versions, error: versionsQueryError } = documentIds.length > 0
+      ? await db
+          .from("document_versions")
+          .select("storage_path, pdf_storage_path, document_id")
+          .in("document_id", documentIds)
+      : { data: null, error: null };
+    if (versionsQueryError) {
+      console.error(`[user/account] Failed to query document_versions for user ${userId}:`, versionsQueryError);
+      return void res.status(500).json({ detail: versionsQueryError.message });
+    }
+    if (versions && Array.isArray(versions)) {
+      for (const version of versions as Array<{ storage_path?: string | null; pdf_storage_path?: string | null }>) {
+        if (version.storage_path) storageKeys.push(version.storage_path);
+        if (version.pdf_storage_path) storageKeys.push(version.pdf_storage_path);
+      }
+    }
+
+    // Delete storage objects before deleting DB rows
+    for (const key of storageKeys) {
+      try {
+        await deleteFile(key);
+      } catch (storageError) {
+        console.error(`[user/account] Failed to delete storage key ${key}:`, storageError);
+        return void res.status(500).json({
+          detail: `Failed to delete storage object: ${storageError instanceof Error ? storageError.message : String(storageError)}`,
+        });
+      }
+    }
+  }
+
+  // Perform all deletions/updates sequentially; if any fail, return error immediately
+  // This provides basic consistency by halting on first error
+  const operations = [
+    { name: "user_api_keys", fn: () => db.from("user_api_keys").delete().eq("user_id", userId) },
+    { name: "user_profiles", fn: () => db.from("user_profiles").delete().eq("user_id", userId) },
+    { name: "hidden_workflows", fn: () => db.from("hidden_workflows").delete().eq("user_id", userId) },
+    { name: "workflow_shares", fn: () => db.from("workflow_shares").delete().eq("shared_by_user_id", userId) },
+    { name: "tabular_review_chats", fn: () => db.from("tabular_review_chats").delete().eq("user_id", userId) },
+    { name: "tabular_reviews", fn: () => db.from("tabular_reviews").delete().eq("user_id", userId) },
+    { name: "chats", fn: () => db.from("chats").delete().eq("user_id", userId) },
+    { name: "documents", fn: () => db.from("documents").delete().eq("user_id", userId) },
+    { name: "project_subfolders", fn: () => db.from("project_subfolders").delete().eq("user_id", userId) },
+    { name: "projects", fn: () => db.from("projects").delete().eq("user_id", userId) },
+    { name: "workflows", fn: () => db.from("workflows").delete().eq("user_id", userId) },
+    { name: "legacy_user_map", fn: () => db.from("legacy_user_map").update({ claimed_user_id: null, claimed_at: null }).eq("claimed_user_id", userId) },
+  ];
+
+  for (const operation of operations) {
+    const result = await operation.fn();
+    if (result.error) {
+      console.error(`[user/account] Failed to delete ${operation.name} for user ${userId}:`, result.error);
+      return void res.status(500).json({ detail: result.error.message });
+    }
+  }
+
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) return void res.status(500).json({ detail: error.message });
   res.status(204).send();

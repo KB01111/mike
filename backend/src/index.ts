@@ -11,6 +11,7 @@ import { tabularRouter } from "./routes/tabular";
 import { workflowsRouter } from "./routes/workflows";
 import { userRouter } from "./routes/user";
 import { downloadsRouter } from "./routes/downloads";
+import { authRouter } from "./routes/auth";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -71,6 +72,12 @@ const uploadLimiter = makeLimiter({
   message: "Too many upload requests. Please try again later.",
 });
 
+const authLimiter = makeLimiter({
+  windowMs: minutes(envInt("RATE_LIMIT_AUTH_WINDOW_MINUTES", 15)),
+  max: envInt("RATE_LIMIT_AUTH_MAX", 10),
+  message: "Too many authentication requests. Please try again later.",
+});
+
 app.disable("x-powered-by");
 app.set("trust proxy", envInt("TRUST_PROXY_HOPS", 1));
 
@@ -109,6 +116,7 @@ app.post("/single-documents", uploadLimiter);
 app.post("/single-documents/:documentId/versions", uploadLimiter);
 app.post("/projects/:projectId/documents", uploadLimiter);
 
+app.use("/auth", authRouter);
 app.use("/chat", chatRouter);
 app.use("/projects", projectsRouter);
 app.use("/projects/:projectId/chat", projectChatRouter);
@@ -121,6 +129,14 @@ app.use("/download", downloadsRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => {
-  console.log(`Mike backend running on port ${PORT}`);
-});
+export { app };
+
+export function startServer(port = PORT) {
+  return app.listen(port, () => {
+    console.log(`Mike backend running on port ${port}`);
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
