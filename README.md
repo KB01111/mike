@@ -9,7 +9,7 @@ Website: [mikeoss.com](https://mikeoss.com)
 - `frontend/` - Next.js application and Tauri v2 desktop shell
 - `frontend/src-tauri/` - Tauri v2 project that launches the packaged Next sidecar
 - `backend/` - Encore.ts app, Express API routes, document processing, and migrations
-- `backend/migrations/` - Encore PostgreSQL migrations
+- `backend/src/migrations/` - Encore PostgreSQL migrations for the `mike` service
 - `backend/schema.sql` - legacy Supabase schema reference only
 
 ## Prerequisites
@@ -25,7 +25,7 @@ Website: [mikeoss.com](https://mikeoss.com)
 
 ## Database Setup
 
-Encore applies the ordered SQL files in `backend/migrations/` to the Encore-managed PostgreSQL database. The first migration creates first-party users, local auth state, the application tables, and the `legacy_user_map` used to claim imported Supabase-owned data by email.
+Encore applies the ordered `.up.sql` files in `backend/src/migrations/` to the Encore-managed PostgreSQL database for the `mike` service. The first migration creates first-party users, local auth state, the application tables, and the `legacy_user_map` used to claim imported Supabase-owned data by email.
 
 For migrated deployments, run the one-off migration tool after configuring `DATABASE_URL`, `MIGRATION_SUPABASE_URL`, `MIGRATION_SUPABASE_SERVICE_ROLE_KEY`, R2 credentials, and `R2_KEY_PREFIX`:
 

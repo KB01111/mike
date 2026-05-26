@@ -58,7 +58,7 @@ test("supports JSON containment filters for shared email lists", async () => {
 
   assert.equal(
     exec.calls[0].sql,
-    'SELECT id FROM "projects" WHERE "shared_with" @> $1::jsonb',
+    'SELECT "id" FROM "projects" WHERE "shared_with" @> $1::jsonb',
   );
   assert.deepEqual(exec.calls[0].params, ['["member@example.com"]']);
 });
@@ -77,7 +77,7 @@ test("inserts a row and returns selected columns", async () => {
   assert.deepEqual(result, { data: { id: "doc-1" }, error: null });
   assert.equal(
     exec.calls[0].sql,
-    'INSERT INTO "documents" ("user_id", "filename") VALUES ($1, $2) RETURNING id',
+    'INSERT INTO "documents" ("user_id", "filename") VALUES ($1, $2) RETURNING "id"',
   );
   assert.deepEqual(exec.calls[0].params, ["user-1", "a.pdf"]);
 });
