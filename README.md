@@ -72,6 +72,8 @@ Create `frontend/.env.local`:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 ```
 
+For packaged desktop builds, the build script requires an API URL. Set either `NEXT_PUBLIC_API_BASE_URL` or `MIKE_DESKTOP_API_BASE_URL` before running `npm run desktop:build --prefix frontend`.
+
 Provider keys are only needed for the models and email features you plan to use. Model provider keys can be configured in `backend/.env` for the whole instance, or per user in **Account > Models & API Keys**. If a provider key is present in `backend/.env`, that provider is available by default and the matching browser API key field is read-only.
 
 ## Install
@@ -85,7 +87,7 @@ npm install --prefix frontend
 
 ## Run Locally
 
-Start the backend:
+Start the Encore backend:
 
 ```bash
 cd backend
@@ -100,10 +102,16 @@ npm run dev --prefix frontend
 
 Open `http://localhost:3000`.
 
-For the desktop shell:
+For the desktop shell in development:
 
 ```bash
 npm run desktop:dev --prefix frontend
+```
+
+For a packaged desktop build:
+
+```bash
+$env:MIKE_DESKTOP_API_BASE_URL="http://localhost:3001"
 npm run desktop:build --prefix frontend
 ```
 
@@ -129,4 +137,6 @@ Desktop builds create a Next standalone server, package `scripts/mike-next-sidec
 npm run build --prefix backend
 npm run build --prefix frontend
 npm run lint --prefix frontend
+cd backend
+encore check "curl /health"
 ```

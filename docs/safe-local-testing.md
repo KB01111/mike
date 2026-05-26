@@ -36,7 +36,7 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-key
 ```
 
 Model-provider keys such as `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, and
-`OPENROUTER_API_KEY` should also stay in `backend/.env`.
+`OPENAI_API_KEY` should also stay in `backend/.env`.
 
 ## Test With Synthetic Documents
 
@@ -72,6 +72,7 @@ test only the non-LLM flows first:
 - file upload with synthetic documents
 - folder organization
 - document deletion
+- desktop startup against a disposable Encore API URL
 
 Then add one disposable, capped model-provider key and test assistant behavior
 with synthetic documents.
