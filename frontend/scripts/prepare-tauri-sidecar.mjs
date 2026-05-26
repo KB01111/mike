@@ -26,6 +26,15 @@ function output(command, args) {
     }).trim();
 }
 
+function npmRun(args, options = {}) {
+    const npmCli = process.env.npm_execpath;
+    if (npmCli && fs.existsSync(npmCli)) {
+        run(process.execPath, [npmCli, ...args], options);
+        return;
+    }
+    run(bin("npm"), args, options);
+}
+
 function hostTuple() {
     try {
         return output("rustc", ["--print", "host-tuple"]);
@@ -66,7 +75,7 @@ if (!desktopApiBase) {
     process.exit(1);
 }
 
-run(bin("npm"), ["run", "build"], {
+npmRun(["run", "build"], {
     env: {
         ...process.env,
         MIKE_DESKTOP_BUILD: "1",
@@ -100,18 +109,33 @@ const finalOutput = path.join(
     binariesDir,
     `mike-next-sidecar-${targetTriple}${extension}`,
 );
-const pkgBinary = path.join(projectRoot, "node_modules", ".bin", bin("pkg"));
+const pkgCli = path.join(
+    projectRoot,
+    "node_modules",
+    "@yao-pkg",
+    "pkg",
+    "lib-es5",
+    "bin.js",
+);
+const pkgCachePath =
+    process.env.PKG_CACHE_PATH || path.join(projectRoot, ".pkg-cache");
 
 fs.rmSync(temporaryOutput, { force: true });
 fs.rmSync(finalOutput, { force: true });
 
-run(pkgBinary, [
+run(process.execPath, [
+    pkgCli,
     "scripts/mike-next-sidecar.cjs",
     "--targets",
     pkgTargetFor(targetTriple),
     "--output",
     temporaryOutput,
-]);
+], {
+    env: {
+        ...process.env,
+        PKG_CACHE_PATH: pkgCachePath,
+    },
+});
 
 fs.renameSync(temporaryOutput, finalOutput);
 console.log(`Prepared Tauri sidecar: ${path.relative(projectRoot, finalOutput)}`);
