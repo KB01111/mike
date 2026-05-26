@@ -138,7 +138,7 @@ create table if not exists public.workflows (
 create table if not exists public.hidden_workflows (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,
-  workflow_id text not null,
+  workflow_id uuid not null references public.workflows(id) on delete cascade,
   created_at timestamptz not null default now(),
   unique(user_id, workflow_id)
 );
