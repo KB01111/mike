@@ -175,7 +175,7 @@ async function upsertLegacyUsers(
       );
       imported += result.rowCount ?? 0;
     } catch (error) {
-      console.error(`[migration] Failed to upsert legacy user ${user.id} (${user.email}):`, error);
+      console.error("[migration] Failed to upsert legacy user: upsert error", error);
       unresolved.push(user);
     }
   }
@@ -351,7 +351,7 @@ async function main() {
       failed: legacy.unresolved.length,
     };
     if (legacy.unresolved.length > 0) {
-      console.warn(`[migration] ${legacy.unresolved.length} legacy users could not be imported:`, legacy.unresolved.map(u => ({ id: u.id, email: u.email })));
+      console.warn(`[migration] ${legacy.unresolved.length} legacy users could not be imported (details in report file)`);
     }
 
     for (const table of TABLES) {

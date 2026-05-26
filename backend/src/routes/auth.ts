@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import {
   createPasswordHash,
   getSessionSecret,
@@ -10,6 +11,28 @@ import { createServerSupabase } from "../lib/supabase";
 import { requireAuth } from "../middleware/auth";
 
 export const authRouter = Router();
+
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function minutes(value: number): number {
+  return value * 60 * 1000;
+}
+
+const authLimiter = rateLimit({
+  windowMs: minutes(envInt("RATE_LIMIT_AUTH_WINDOW_MINUTES", 15)),
+  max: envInt("RATE_LIMIT_AUTH_MAX", 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS",
+  message: {
+    detail: "Too many authentication requests. Please try again later.",
+  },
+});
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
@@ -136,7 +159,7 @@ async function claimLegacyDataByEmail(email: string, userId: string) {
   }
 }
 
-authRouter.post("/signup", async (req, res) => {
+authRouter.post("/signup", authLimiter, async (req, res) => {
   const parsed = parseCredentials(req.body);
   if (!parsed.ok) return void res.status(400).json({ detail: parsed.detail });
 
@@ -175,7 +198,7 @@ authRouter.post("/signup", async (req, res) => {
   res.status(201).json(sessionResponse(user));
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", authLimiter, async (req, res) => {
   const parsed = parseCredentials(req.body);
   if (!parsed.ok) return void res.status(400).json({ detail: parsed.detail });
 

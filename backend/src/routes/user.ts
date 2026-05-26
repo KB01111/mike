@@ -259,21 +259,37 @@ userRouter.delete("/account", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
   const db = createServerSupabase();
 
-  // First, query documents to get storage keys before deletion
+  // First, query document_versions to get storage keys before deletion
   let storageKeys: string[] = [];
   if (storageEnabled) {
-    const { data: documents, error: documentsQueryError } = await db
+    // First get document IDs for the user
+    const { data: userDocs, error: docsQueryError } = await db
       .from("documents")
-      .select("storage_path, pdf_storage_path")
+      .select("id")
       .eq("user_id", userId);
-    if (documentsQueryError) {
-      console.error(`[user/account] Failed to query documents for user ${userId}:`, documentsQueryError);
-      return void res.status(500).json({ detail: documentsQueryError.message });
+
+    if (docsQueryError) {
+      console.error(`[user/account] Failed to query documents for user ${userId}:`, docsQueryError);
+      return void res.status(500).json({ detail: docsQueryError.message });
     }
-    if (documents && Array.isArray(documents)) {
-      for (const doc of documents as Array<{ storage_path?: string | null; pdf_storage_path?: string | null }>) {
-        if (doc.storage_path) storageKeys.push(doc.storage_path);
-        if (doc.pdf_storage_path) storageKeys.push(doc.pdf_storage_path);
+
+    const documentIds = userDocs?.map((doc) => doc.id) ?? [];
+
+    // Then query document_versions for those documents
+    const { data: versions, error: versionsQueryError } = documentIds.length > 0
+      ? await db
+          .from("document_versions")
+          .select("storage_path, pdf_storage_path, document_id")
+          .in("document_id", documentIds)
+      : { data: null, error: null };
+    if (versionsQueryError) {
+      console.error(`[user/account] Failed to query document_versions for user ${userId}:`, versionsQueryError);
+      return void res.status(500).json({ detail: versionsQueryError.message });
+    }
+    if (versions && Array.isArray(versions)) {
+      for (const version of versions as Array<{ storage_path?: string | null; pdf_storage_path?: string | null }>) {
+        if (version.storage_path) storageKeys.push(version.storage_path);
+        if (version.pdf_storage_path) storageKeys.push(version.pdf_storage_path);
       }
     }
 
