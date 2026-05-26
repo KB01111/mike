@@ -1,6 +1,6 @@
 /**
  * Mike API client — all requests to the Node.js backend.
- * Attaches the Supabase auth token for user authentication.
+ * Attaches the local Mike bearer token for user authentication.
  */
 
 import { supabase } from "@/lib/supabase";

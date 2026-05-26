@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "types": ["node", "express", "cors", "multer"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "~encore/*": ["./encore.gen/*"]
     }
   },
   "include": ["src/**/*"],

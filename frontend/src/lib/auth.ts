@@ -1,11 +1,10 @@
 import { NextRequest } from 'next/server';
 
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+
 /**
- * Extract and validate user from Supabase JWT token
- * Returns user info if valid, null if invalid or missing
- * 
- * @param request NextRequest with Authorization header
- * @returns User object with email and id, or null
+ * Extract and validate user from a Mike bearer session token.
  */
 export async function getUserFromRequest(request: NextRequest): Promise<{
   email: string;
@@ -23,23 +22,27 @@ export async function getUserFromRequest(request: NextRequest): Promise<{
     if (!token) {
       return null;
     }
-    
-    // Validate with Supabase
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
-    );
+    const response = await fetch(`${API_BASE}/auth/session`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error || !user) {
-      console.warn('[Auth] Invalid or expired token:', error?.message);
+    if (!response.ok) {
+      console.warn('[Auth] Invalid or expired token:', response.status);
       return null;
     }
 
-    if (!user.email) {
-      console.warn('[Auth] User has no email');
+    const data = (await response.json()) as {
+      user?: { email?: string | null; id?: string | null };
+    };
+    const user = data.user;
+
+    if (!user?.email || !user.id) {
+      console.warn('[Auth] User has no email or id');
       return null;
     }
 

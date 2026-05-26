@@ -257,6 +257,31 @@ userRouter.put("/api-keys/:provider", requireAuth, async (req, res) => {
 userRouter.delete("/account", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
   const db = createServerSupabase();
+  const deletions = [
+    () => db.from("user_api_keys").delete().eq("user_id", userId),
+    () => db.from("user_profiles").delete().eq("user_id", userId),
+    () => db.from("hidden_workflows").delete().eq("user_id", userId),
+    () => db.from("workflow_shares").delete().eq("shared_by_user_id", userId),
+    () => db.from("tabular_review_chats").delete().eq("user_id", userId),
+    () => db.from("tabular_reviews").delete().eq("user_id", userId),
+    () => db.from("chats").delete().eq("user_id", userId),
+    () => db.from("documents").delete().eq("user_id", userId),
+    () => db.from("project_subfolders").delete().eq("user_id", userId),
+    () => db.from("projects").delete().eq("user_id", userId),
+    () => db.from("workflows").delete().eq("user_id", userId),
+    () =>
+      db
+        .from("legacy_user_map")
+        .update({ claimed_user_id: null, claimed_at: null })
+        .eq("claimed_user_id", userId),
+  ];
+  for (const deletion of deletions) {
+    const result = await deletion();
+    if (result.error) {
+      return void res.status(500).json({ detail: result.error.message });
+    }
+  }
+
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) return void res.status(500).json({ detail: error.message });
   res.status(204).send();
