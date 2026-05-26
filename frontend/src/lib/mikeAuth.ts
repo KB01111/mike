@@ -65,7 +65,7 @@ function emit(event: AuthChangeEvent, session: LocalSession | null): void {
         try {
             callback(event, session);
         } catch (error) {
-            console.error("[supabase] Subscriber callback error:", error);
+            console.error("[mike-auth] Subscriber callback error:", error);
         }
     }
 }
@@ -133,7 +133,7 @@ async function authRequest(
     return parseAuthResponse(response);
 }
 
-export const supabase = {
+export const mikeAuth = {
     auth: {
         async signInWithPassword(credentials: {
             email: string;

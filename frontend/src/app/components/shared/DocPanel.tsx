@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 import { applyOptimisticResolution } from "../assistant/EditCard";
 import { DocView } from "./DocView";
 import { DocxView } from "./DocxView";
@@ -357,7 +357,7 @@ function EditResolveButtons({
             try {
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
                 const apiBase =
                     process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -459,7 +459,7 @@ function DownloadButton({
         try {
             const {
                 data: { session },
-            } = await supabase.auth.getSession();
+            } = await mikeAuth.auth.getSession();
             const token = session?.access_token;
             const apiBase =
                 process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";

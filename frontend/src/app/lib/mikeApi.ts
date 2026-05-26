@@ -3,7 +3,7 @@
  * Attaches the local Mike bearer token for user authentication.
  */
 
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 import type {
     AssistantEvent,
     MikeChat,
@@ -40,7 +40,7 @@ const API_BASE =
 async function getAuthHeader(): Promise<Record<string, string>> {
     const {
         data: { session },
-    } = await supabase.auth.getSession();
+    } = await mikeAuth.auth.getSession();
     if (!session?.access_token) return {};
     return { Authorization: `Bearer ${session.access_token}` };
 }

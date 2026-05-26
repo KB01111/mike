@@ -16,7 +16,7 @@ import type {
 } from "../shared/types";
 import { EditCard, applyOptimisticResolution } from "./EditCard";
 import { PreResponseWrapper } from "../shared/PreResponseWrapper";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 
 function toolCallLabel(name: string): string {
     if (name === "generate_docx") return "Creating document...";
@@ -90,7 +90,7 @@ function BulkEditActions({
         try {
             const {
                 data: { session },
-            } = await supabase.auth.getSession();
+            } = await mikeAuth.auth.getSession();
             const token = session?.access_token;
             const apiBase =
                 process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -635,7 +635,7 @@ function DocDownloadBlock({
         try {
             const {
                 data: { session },
-            } = await supabase.auth.getSession();
+            } = await mikeAuth.auth.getSession();
             const token = session?.access_token;
             const resp = await fetch(href, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},

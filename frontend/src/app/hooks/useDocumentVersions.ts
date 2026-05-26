@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 
 export interface DocumentVersionRow {
     id: string;
@@ -54,7 +54,7 @@ export function useDocumentVersions(
             try {
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
                 const apiBase =
                     process.env.NEXT_PUBLIC_API_BASE_URL ??

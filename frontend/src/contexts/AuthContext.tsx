@@ -7,7 +7,7 @@ import React, {
     useState,
     ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 
 interface User {
     id: string;
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const checkUser = async () => {
             const {
                 data: { session },
-            } = await supabase.auth.getSession();
+            } = await mikeAuth.auth.getSession();
 
             if (session?.user) {
                 setUser({
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        } = mikeAuth.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
                 setUser({
                     id: session.user.id,
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        await mikeAuth.auth.signOut();
         setUser(null);
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 
 export interface FetchDocxResult {
     bytes: ArrayBuffer | null;
@@ -89,7 +89,7 @@ export function useFetchDocxBytes(
             (async () => {
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
                 // Stream bytes through the backend (avoids CORS on R2
                 // signed URLs).

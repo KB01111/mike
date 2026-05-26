@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { mikeAuth } from "@/lib/mikeAuth";
 
 /**
  * /display returns either PDF bytes (when the active version has a PDF
@@ -39,7 +39,7 @@ export function useFetchSingleDoc(
             try {
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await mikeAuth.auth.getSession();
                 const token = session?.access_token;
                 if (cancelled) return;
 
