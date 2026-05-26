@@ -6,7 +6,7 @@ import {
     uploadFile,
 } from "./storage";
 import { convertedPdfKey } from "./convert";
-import { createServerSupabase } from "./supabase";
+import { createServerDb } from "./dbClient";
 import {
     applyTrackedEdits,
     extractDocxBodyText,
@@ -544,7 +544,7 @@ function citationReminder(docLabel: string, filename: string): string {
 export async function enrichWithPriorEvents(
     messages: ChatMessage[],
     chatId: string | null | undefined,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
     docIndex: DocIndex,
 ): Promise<ChatMessage[]> {
     if (!chatId) return messages;
@@ -731,7 +731,7 @@ export async function generateDocx(
     title: string,
     sections: unknown[],
     userId: string,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
     options?: { landscape?: boolean; projectId?: string | null },
 ) {
     try {
@@ -1253,7 +1253,7 @@ export async function generateDocx(
  */
 export async function loadCurrentVersionBytes(
     documentId: string,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
 ): Promise<{ bytes: Buffer; storage_path: string } | null> {
     const active = await loadActiveVersion(documentId, db);
     if (!active) return null;
@@ -1271,7 +1271,7 @@ export async function runEditDocument(params: {
     documentId: string;
     userId: string;
     edits: EditInput[];
-    db: ReturnType<typeof createServerSupabase>;
+    db: ReturnType<typeof createServerDb>;
     /**
      * If provided, append these edits to the existing turn-scoped version
      * (overwrites the file at storagePath and reuses the document_versions
@@ -1483,7 +1483,7 @@ async function readDocumentContent(
     docStore: DocStore,
     write: (s: string) => void,
     docIndex?: DocIndex,
-    db?: ReturnType<typeof createServerSupabase>,
+    db?: ReturnType<typeof createServerDb>,
     opts?: { emitEvents?: boolean },
 ): Promise<string> {
     const emitEvents = opts?.emitEvents ?? true;
@@ -1669,7 +1669,7 @@ async function findInDocumentContent(params: {
     docStore: DocStore;
     write: (s: string) => void;
     docIndex?: DocIndex;
-    db?: ReturnType<typeof createServerSupabase>;
+    db?: ReturnType<typeof createServerDb>;
 }): Promise<string> {
     const {
         docLabel,
@@ -1838,7 +1838,7 @@ export async function runToolCalls(
     toolCalls: ToolCall[],
     docStore: DocStore,
     userId: string,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
     write: (s: string) => void,
     workflowStore?: WorkflowStore,
     tabularStore?: TabularCellStore,
@@ -2332,9 +2332,8 @@ export async function runToolCalls(
                             );
                         } else {
                             // Preserve the request order so each row pairs
-                            // with the right filename. Supabase returns
-                            // inserted rows in the same order as the
-                            // payload.
+                            // with the right filename. The compatibility
+                            // client returns inserted rows in payload order.
                             const newDocs = insertedDocs as {
                                 id: string;
                                 filename: string;
@@ -2715,7 +2714,7 @@ export async function runLLMStream(params: {
     docStore: DocStore;
     docIndex: DocIndex;
     userId: string;
-    db: ReturnType<typeof createServerSupabase>;
+    db: ReturnType<typeof createServerDb>;
     write: (s: string) => void;
     extraTools?: unknown[];
     workflowStore?: WorkflowStore;
@@ -3049,7 +3048,7 @@ export function extractAnnotations(
 export async function buildDocContext(
     messages: ChatMessage[],
     userId: string,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
     chatId?: string | null,
 ): Promise<{ docIndex: DocIndex; docStore: DocStore }> {
     const docIndex: DocIndex = {};
@@ -3138,7 +3137,7 @@ export async function buildDocContext(
 export async function buildProjectDocContext(
     projectId: string,
     _userId: string,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
 ): Promise<{
     docIndex: DocIndex;
     docStore: DocStore;
@@ -3232,7 +3231,7 @@ export async function buildProjectDocContext(
 export async function buildWorkflowStore(
     userId: string,
     userEmail: string | null | undefined,
-    db: ReturnType<typeof createServerSupabase>,
+    db: ReturnType<typeof createServerDb>,
 ): Promise<WorkflowStore> {
     const { BUILTIN_WORKFLOWS } = await import("./builtinWorkflows");
     const store: WorkflowStore = new Map();

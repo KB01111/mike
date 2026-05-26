@@ -1,5 +1,5 @@
 export type DbRow = Record<string, unknown>;
-// The legacy Supabase client was effectively untyped across this codebase.
+// The legacy query client was effectively untyped across this codebase.
 // Keep row values permissive at this compatibility boundary and rely on route
 // validation/access checks for behavior.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -464,7 +464,7 @@ class PostgresQueryBuilder
   }
 }
 
-export class PostgresSupabaseCompatClient {
+export class PostgresCompatClient {
   public readonly auth: {
     admin: {
       listUsers: (options?: { perPage?: number }) => Promise<{
@@ -536,6 +536,6 @@ export class PostgresSupabaseCompatClient {
 
 export function createPostgresClient(
   executor: SqlExecutor,
-): PostgresSupabaseCompatClient {
-  return new PostgresSupabaseCompatClient(executor);
+): PostgresCompatClient {
+  return new PostgresCompatClient(executor);
 }

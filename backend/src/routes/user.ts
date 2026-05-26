@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
-import { createServerSupabase } from "../lib/supabase";
+import { createServerDb } from "../lib/dbClient";
 import { DEFAULT_TABULAR_MODEL, resolveModel } from "../lib/llm";
 import {
   type ApiKeyStatus,
@@ -103,7 +103,7 @@ function validateProfilePayload(body: unknown):
 }
 
 async function ensureProfileRow(
-  db: ReturnType<typeof createServerSupabase>,
+  db: ReturnType<typeof createServerDb>,
   userId: string,
 ) {
   const { error } = await db
@@ -116,7 +116,7 @@ async function ensureProfileRow(
 }
 
 async function loadProfile(
-  db: ReturnType<typeof createServerSupabase>,
+  db: ReturnType<typeof createServerDb>,
   userId: string,
   options: { repairMissing?: boolean } = {},
 ) {
@@ -175,7 +175,7 @@ async function loadProfile(
 // POST /user/profile
 userRouter.post("/profile", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
-  const db = createServerSupabase();
+  const db = createServerDb();
   const error = await ensureProfileRow(db, userId);
   if (error) return void res.status(500).json({ detail: error.message });
   res.json({ ok: true });
@@ -184,7 +184,7 @@ userRouter.post("/profile", requireAuth, async (_req, res) => {
 // GET /user/profile
 userRouter.get("/profile", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { data, error } = await loadProfile(db, userId, {
     repairMissing: true,
   });
@@ -199,7 +199,7 @@ userRouter.patch("/profile", requireAuth, async (req, res) => {
   const parsed = validateProfilePayload(req.body);
   if (!parsed.ok) return void res.status(400).json({ detail: parsed.detail });
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const ensureError = await ensureProfileRow(db, userId);
   if (ensureError)
     return void res.status(500).json({ detail: ensureError.message });
@@ -220,7 +220,7 @@ userRouter.patch("/profile", requireAuth, async (req, res) => {
 // GET /user/api-keys
 userRouter.get("/api-keys", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
-  const db = createServerSupabase();
+  const db = createServerDb();
   const status = await getUserApiKeyStatus(userId, db);
   res.json(status);
 });
@@ -234,7 +234,7 @@ userRouter.put("/api-keys/:provider", requireAuth, async (req, res) => {
 
   const apiKey =
     typeof req.body?.api_key === "string" ? req.body.api_key : null;
-  const db = createServerSupabase();
+  const db = createServerDb();
   try {
     if (hasEnvApiKey(provider)) {
       return void res.status(409).json({
@@ -257,7 +257,7 @@ userRouter.put("/api-keys/:provider", requireAuth, async (req, res) => {
 // DELETE /user/account
 userRouter.delete("/account", requireAuth, async (_req, res) => {
   const userId = res.locals.userId as string;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   // First, query document_versions to get storage keys before deletion
   let storageKeys: string[] = [];

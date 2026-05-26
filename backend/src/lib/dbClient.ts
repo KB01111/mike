@@ -4,15 +4,15 @@ import {
   verifySessionToken,
 } from "./localAuth";
 import { createPostgresClient } from "./postgresClient";
-import type { PostgresSupabaseCompatClient } from "./postgresClient";
+import type { PostgresCompatClient } from "./postgresClient";
 
 /**
- * Compatibility wrapper for the old Supabase service-role client.
+ * Compatibility wrapper for the Postgres query client.
  *
  * During the Encore migration, existing routes keep their `db.from(...)`
  * shape while this layer translates the subset Mike uses into Postgres SQL.
  */
-export function createServerSupabase(): PostgresSupabaseCompatClient {
+export function createServerDb(): PostgresCompatClient {
   return createPostgresClient(mikeDb);
 }
 

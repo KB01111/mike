@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
-import { createServerSupabase } from "../lib/supabase";
+import { createServerDb } from "../lib/dbClient";
 import { downloadFile } from "../lib/storage";
 import { loadActiveVersion } from "../lib/documentVersions";
 import { normalizeDocxZipPaths } from "../lib/convert";
@@ -72,7 +72,7 @@ function missingModelApiKey(model: string, apiKeys: UserApiKeys) {
 tabularRouter.get("/", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     // Optional ?project_id= scopes results to a single project. Project-page
     // callers pass it; the global tabular-reviews page omits it. We still
@@ -215,7 +215,7 @@ tabularRouter.post("/", requireAuth, async (req, res) => {
             project_id?: string;
         };
 
-    const db = createServerSupabase();
+    const db = createServerDb();
     if (project_id) {
         const access = await checkProjectAccess(
             project_id,
@@ -340,7 +340,7 @@ tabularRouter.get("/:reviewId", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { reviewId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     const { data: review, error } = await db
         .from("tabular_reviews")
@@ -389,7 +389,7 @@ tabularRouter.get("/:reviewId/people", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { reviewId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     const { data: review } = await db
         .from("tabular_reviews")
@@ -496,7 +496,7 @@ tabularRouter.patch("/:reviewId", requireAuth, async (req, res) => {
     }
     updates.updated_at = new Date().toISOString();
 
-    const db = createServerSupabase();
+    const db = createServerDb();
     const { data: existingReview, error: reviewError } = await db
         .from("tabular_reviews")
         .select("*")
@@ -647,7 +647,7 @@ tabularRouter.patch("/:reviewId", requireAuth, async (req, res) => {
 tabularRouter.delete("/:reviewId", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const { reviewId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
     const { error } = await db
         .from("tabular_reviews")
         .delete()
@@ -671,7 +671,7 @@ tabularRouter.post("/:reviewId/clear-cells", requireAuth, async (req, res) => {
             .status(400)
             .json({ detail: "document_ids is required" });
 
-    const db = createServerSupabase();
+    const db = createServerDb();
     const { data: review, error: reviewError } = await db
         .from("tabular_reviews")
         .select("id, user_id, project_id")
@@ -710,7 +710,7 @@ tabularRouter.post(
                 .status(400)
                 .json({ detail: "document_id and column_index are required" });
 
-        const db = createServerSupabase();
+        const db = createServerDb();
         const { data: review, error: reviewError } = await db
             .from("tabular_reviews")
             .select("*")
@@ -824,7 +824,7 @@ tabularRouter.post("/:reviewId/generate", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { reviewId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     const { data: review, error: reviewError } = await db
         .from("tabular_reviews")
@@ -1018,7 +1018,7 @@ tabularRouter.get("/:reviewId/chats", requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { reviewId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     // Verify access (owner or shared-project member).
     const { data: review, error } = await db
@@ -1050,7 +1050,7 @@ tabularRouter.delete(
     async (req, res) => {
         const userId = res.locals.userId as string;
         const { chatId } = req.params;
-        const db = createServerSupabase();
+        const db = createServerDb();
         // Owner-only delete — sibling collaborators shouldn't be able to wipe
         // each other's threads.
         const { error } = await db
@@ -1071,7 +1071,7 @@ tabularRouter.get(
         const userId = res.locals.userId as string;
         const userEmail = res.locals.userEmail as string | undefined;
         const { reviewId, chatId } = req.params;
-        const db = createServerSupabase();
+        const db = createServerDb();
 
         const { data: review } = await db
             .from("tabular_reviews")
@@ -1227,7 +1227,7 @@ tabularRouter.post("/:reviewId/chat", requireAuth, async (req, res) => {
             .json({ detail: "messages must include a user message" });
     }
 
-    const db = createServerSupabase();
+    const db = createServerDb();
     const { data: review, error } = await db
         .from("tabular_reviews")
         .select("*")

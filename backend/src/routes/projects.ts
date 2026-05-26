@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
-import { createServerSupabase } from "../lib/supabase";
+import { createServerDb } from "../lib/dbClient";
 import {
   attachActiveVersionPaths,
   attachLatestVersionNumbers,
@@ -26,7 +26,7 @@ function normalizeDocumentFilename(nextName: unknown, currentName: string) {
 projectsRouter.get("/", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const { data: ownProjects, error: ownError } = await db
     .from("projects")
@@ -108,7 +108,7 @@ projectsRouter.post("/", requireAuth, async (req, res) => {
     }
   }
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { data, error } = await db
     .from("projects")
     .insert({
@@ -128,7 +128,7 @@ projectsRouter.get("/:projectId", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string;
   const { projectId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const { data: project, error } = await db
     .from("projects")
@@ -172,7 +172,7 @@ projectsRouter.get("/:projectId/people", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { projectId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const { data: project } = await db
     .from("projects")
@@ -280,7 +280,7 @@ projectsRouter.patch("/:projectId", requireAuth, async (req, res) => {
     updates.shared_with = cleaned;
   }
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { data, error } = await db
     .from("projects")
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -307,7 +307,7 @@ projectsRouter.patch("/:projectId", requireAuth, async (req, res) => {
 projectsRouter.delete("/:projectId", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const { projectId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { error } = await db
     .from("projects")
     .delete()
@@ -322,7 +322,7 @@ projectsRouter.get("/:projectId/documents", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { projectId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok)
@@ -349,7 +349,7 @@ projectsRouter.post(
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { projectId, documentId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     const access = await checkProjectAccess(projectId, userId, userEmail, db);
     if (!access.ok)
@@ -475,7 +475,7 @@ projectsRouter.patch("/:projectId/documents/:documentId", requireAuth, async (re
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { projectId, documentId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok)
@@ -524,7 +524,7 @@ projectsRouter.post(
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { projectId } = req.params;
-    const db = createServerSupabase();
+    const db = createServerDb();
 
     const access = await checkProjectAccess(projectId, userId, userEmail, db);
     if (!access.ok)
@@ -543,7 +543,7 @@ projectsRouter.get("/:projectId/chats", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { projectId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok)
@@ -568,7 +568,7 @@ projectsRouter.post("/:projectId/folders", requireAuth, async (req, res) => {
   const { name, parent_folder_id } = req.body as { name: string; parent_folder_id?: string | null };
   if (!name?.trim()) return void res.status(400).json({ detail: "name is required" });
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok) return void res.status(404).json({ detail: "Project not found" });
 
@@ -595,7 +595,7 @@ projectsRouter.patch("/:projectId/folders/:folderId", requireAuth, async (req, r
   const { projectId, folderId } = req.params;
   const body = req.body as { name?: string; parent_folder_id?: string | null };
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok) return void res.status(404).json({ detail: "Project not found" });
 
@@ -631,7 +631,7 @@ projectsRouter.delete("/:projectId/folders/:folderId", requireAuth, async (req, 
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { projectId, folderId } = req.params;
-  const db = createServerSupabase();
+  const db = createServerDb();
 
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok) return void res.status(404).json({ detail: "Project not found" });
@@ -655,7 +655,7 @@ projectsRouter.patch("/:projectId/documents/:documentId/folder", requireAuth, as
   const { projectId, documentId } = req.params;
   const { folder_id } = req.body as { folder_id: string | null };
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const access = await checkProjectAccess(projectId, userId, userEmail, db);
   if (!access.ok) return void res.status(404).json({ detail: "Project not found" });
 
@@ -673,7 +673,7 @@ projectsRouter.patch("/:projectId/documents/:documentId/folder", requireAuth, as
 });
 
 async function loadProjectFolder(
-  db: ReturnType<typeof createServerSupabase>,
+  db: ReturnType<typeof createServerDb>,
   projectId: string,
   folderId: string,
 ): Promise<{ id: string; parent_folder_id: string | null } | null> {
@@ -691,7 +691,7 @@ export async function handleDocumentUpload(
   res: import("express").Response,
   userId: string,
   projectId: string | null,
-  db: ReturnType<typeof createServerSupabase>,
+  db: ReturnType<typeof createServerDb>,
 ) {
   const file = req.file;
   if (!file) return void res.status(400).json({ detail: "file is required" });

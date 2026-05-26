@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import { createServerSupabase } from "./supabase";
+import { createServerDb } from "./dbClient";
 import type { UserApiKeys } from "./llm";
 
-type Db = ReturnType<typeof createServerSupabase>;
+type Db = ReturnType<typeof createServerDb>;
 export type ApiKeyProvider = "claude" | "gemini" | "openai";
 export type ApiKeySource = "user" | "env" | null;
 export type ApiKeyStatus = Record<ApiKeyProvider, boolean> & {
@@ -90,7 +90,7 @@ export function normalizeApiKeyProvider(value: string): ApiKeyProvider | null {
 
 export async function getUserApiKeyStatus(
     userId: string,
-    db: Db = createServerSupabase(),
+    db: Db = createServerDb(),
 ): Promise<ApiKeyStatus> {
     const status: ApiKeyStatus = {
         claude: false,
@@ -129,7 +129,7 @@ export async function getUserApiKeyStatus(
 
 export async function getUserApiKeys(
     userId: string,
-    db: Db = createServerSupabase(),
+    db: Db = createServerDb(),
 ): Promise<UserApiKeys> {
     const apiKeys: UserApiKeys = {
         claude: envApiKey("claude"),
@@ -157,7 +157,7 @@ export async function saveUserApiKey(
     userId: string,
     provider: ApiKeyProvider,
     value: string | null,
-    db: Db = createServerSupabase(),
+    db: Db = createServerDb(),
 ): Promise<void> {
     const normalized = value?.trim() || null;
     if (!normalized) {

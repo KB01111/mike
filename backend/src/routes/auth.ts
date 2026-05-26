@@ -7,7 +7,7 @@ import {
   signSessionToken,
   verifyPassword,
 } from "../lib/localAuth";
-import { createServerSupabase } from "../lib/supabase";
+import { createServerDb } from "../lib/dbClient";
 import { requireAuth } from "../middleware/auth";
 
 export const authRouter = Router();
@@ -76,7 +76,7 @@ function parseCredentials(body: unknown):
 }
 
 async function ensureProfile(userId: string) {
-  const db = createServerSupabase();
+  const db = createServerDb();
   await db.from("user_profiles").upsert(
     {
       user_id: userId,
@@ -87,7 +87,7 @@ async function ensureProfile(userId: string) {
 }
 
 async function claimLegacyDataByEmail(email: string, userId: string) {
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { data } = await db
     .from("legacy_user_map")
     .select("legacy_user_id")
@@ -163,7 +163,7 @@ authRouter.post("/signup", authLimiter, async (req, res) => {
   const parsed = parseCredentials(req.body);
   if (!parsed.ok) return void res.status(400).json({ detail: parsed.detail });
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const existing = await db
     .from("users")
     .select("id")
@@ -202,7 +202,7 @@ authRouter.post("/login", authLimiter, async (req, res) => {
   const parsed = parseCredentials(req.body);
   if (!parsed.ok) return void res.status(400).json({ detail: parsed.detail });
 
-  const db = createServerSupabase();
+  const db = createServerDb();
   const { data, error } = await db
     .from("users")
     .select("id, email, password_hash, password_salt")
