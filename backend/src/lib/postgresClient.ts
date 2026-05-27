@@ -52,6 +52,17 @@ type OrFilter =
 
 type Action = "select" | "insert" | "update" | "delete" | "upsert";
 
+const JSONB_COLUMNS = new Set([
+  "annotations",
+  "citations",
+  "columns_config",
+  "content",
+  "document_ids",
+  "files",
+  "shared_with",
+  "structure_tree",
+]);
+
 function quoteIdent(identifier: string): string {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
     throw new Error(`Unsafe SQL identifier: ${identifier}`);
@@ -104,6 +115,16 @@ function parseOrFilterPart(part: string): OrFilter {
 function appendParam(params: unknown[], value: unknown): string {
   params.push(value);
   return `$${params.length}`;
+}
+
+function appendColumnParam(
+  params: unknown[],
+  column: string,
+  value: unknown,
+): string {
+  if (!JSONB_COLUMNS.has(column)) return appendParam(params, value);
+  params.push(value == null ? null : JSON.stringify(value));
+  return `$${params.length}::jsonb`;
 }
 
 function buildFilterSql(filter: Filter, params: unknown[]): string {
@@ -373,7 +394,8 @@ class PostgresQueryBuilder
     if (entries.length === 0) throw new Error("update values are required");
     const params: unknown[] = [];
     const setSql = entries.map(
-      ([column, value]) => `${quoteIdent(column)} = ${appendParam(params, value)}`,
+      ([column, value]) =>
+        `${quoteIdent(column)} = ${appendColumnParam(params, column, value)}`,
     );
     const sql = `UPDATE ${quoteIdent(this.table)} SET ${setSql.join(", ")}${this.whereClause(params)}`;
     if (this.returningColumns) {
@@ -439,7 +461,7 @@ class PostgresQueryBuilder
     const params: unknown[] = [];
     const valuesSql = this.insertRows.map((row) => {
       const placeholders = columns.map((column) =>
-        appendParam(params, row[column] ?? null),
+        appendColumnParam(params, column, row[column] ?? null),
       );
       return `(${placeholders.join(", ")})`;
     });

@@ -136,7 +136,3 @@ export function startServer(port = PORT) {
     console.log(`Mike backend running on port ${port}`);
   });
 }
-
-if (require.main === module) {
-  startServer();
-}

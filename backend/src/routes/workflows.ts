@@ -1,6 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { requireAuth } from "../middleware/auth";
 import { createServerDb } from "../lib/dbClient";
+import { mountedRootPaths } from "../lib/expressCompat";
 
 export const workflowsRouter = Router();
 
@@ -120,7 +121,7 @@ async function resolveWorkflowAccess(
 }
 
 // GET /workflows
-workflowsRouter.get("/", requireAuth, asyncRoute(async (req, res) => {
+workflowsRouter.get(mountedRootPaths("/workflows"), requireAuth, asyncRoute(async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string;
   const { type } = req.query as { type?: string };
@@ -175,7 +176,7 @@ workflowsRouter.get("/", requireAuth, asyncRoute(async (req, res) => {
 }));
 
 // POST /workflows
-workflowsRouter.post("/", requireAuth, asyncRoute(async (req, res) => {
+workflowsRouter.post(mountedRootPaths("/workflows"), requireAuth, asyncRoute(async (req, res) => {
   const userId = res.locals.userId as string;
   const { title, type, prompt_md, columns_config, practice } = req.body as {
     title: string;

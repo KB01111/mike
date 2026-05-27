@@ -13,6 +13,7 @@ import {
 import { completeText } from "../lib/llm";
 import { getUserApiKeys, getUserModelSettings } from "../lib/userSettings";
 import { checkProjectAccess } from "../lib/access";
+import { mountedRootPaths } from "../lib/expressCompat";
 
 export const chatRouter = Router();
 
@@ -138,7 +139,7 @@ async function getAccessibleChat(
 // own projects in the global recent-chats list). Chats in projects that
 // are merely *shared with* the user are NOT included here — those are
 // listed per-project via GET /projects/:projectId/chats.
-chatRouter.get("/", requireAuth, async (req, res) => {
+chatRouter.get(mountedRootPaths("/chat"), requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const db = createServerDb();
     const requestedLimit = Number.parseInt(String(req.query.limit ?? ""), 10);
@@ -420,7 +421,7 @@ chatRouter.post("/:chatId/generate-title", requireAuth, async (req, res) => {
 });
 
 // POST /chat — streaming
-chatRouter.post("/", requireAuth, async (req, res) => {
+chatRouter.post(mountedRootPaths("/chat"), requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const body =
         req.body && typeof req.body === "object" && !Array.isArray(req.body)

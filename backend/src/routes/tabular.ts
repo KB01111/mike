@@ -24,6 +24,7 @@ import {
     filterAccessibleDocumentIds,
     listAccessibleProjectIds,
 } from "../lib/access";
+import { mountedRootPaths } from "../lib/expressCompat";
 
 function formatPromptSuffix(format?: string, tags?: string[]): string {
     switch (format) {
@@ -69,7 +70,7 @@ function missingModelApiKey(model: string, apiKeys: UserApiKeys) {
 }
 
 // GET /tabular-review
-tabularRouter.get("/", requireAuth, async (req, res) => {
+tabularRouter.get(mountedRootPaths("/tabular-review"), requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const db = createServerDb();
@@ -203,7 +204,7 @@ tabularRouter.get("/", requireAuth, async (req, res) => {
 });
 
 // POST /tabular-review
-tabularRouter.post("/", requireAuth, async (req, res) => {
+tabularRouter.post(mountedRootPaths("/tabular-review"), requireAuth, async (req, res) => {
     const userId = res.locals.userId as string;
     const userEmail = res.locals.userEmail as string | undefined;
     const { title, document_ids, columns_config, workflow_id, project_id } =

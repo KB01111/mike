@@ -9,6 +9,7 @@ import { downloadFile, uploadFile, storageKey } from "../lib/storage";
 import { docxToPdf, convertedPdfKey } from "../lib/convert";
 import { checkProjectAccess } from "../lib/access";
 import { singleFileUpload } from "../lib/upload";
+import { mountedRootPaths } from "../lib/expressCompat";
 
 export const projectsRouter = Router();
 const ALLOWED_TYPES = new Set(["pdf", "docx", "doc"]);
@@ -23,7 +24,7 @@ function normalizeDocumentFilename(nextName: unknown, currentName: string) {
 }
 
 // GET /projects
-projectsRouter.get("/", requireAuth, async (req, res) => {
+projectsRouter.get(mountedRootPaths("/projects"), requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string;
   const db = createServerDb();
@@ -80,7 +81,7 @@ projectsRouter.get("/", requireAuth, async (req, res) => {
 });
 
 // POST /projects
-projectsRouter.post("/", requireAuth, async (req, res) => {
+projectsRouter.post(mountedRootPaths("/projects"), requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const userEmail = res.locals.userEmail as string | undefined;
   const { name, cm_number, shared_with } = req.body as {

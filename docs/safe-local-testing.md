@@ -9,6 +9,7 @@ documents only.
 Create separate test resources for Mike:
 
 - a throwaway Encore Cloud app and database
+- or an unlinked local Encore app backed by Docker Desktop for local-only checks
 - a throwaway S3-compatible storage bucket, such as Cloudflare R2
 - disposable model-provider API keys with low spending limits
 - a test email account

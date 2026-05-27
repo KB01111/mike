@@ -17,7 +17,8 @@ Website: [mikeoss.com](https://mikeoss.com)
 - Node.js 20 or newer
 - npm
 - git
-- Encore CLI and an Encore Cloud app for the backend
+- Encore CLI
+- Docker Desktop for Encore's local PostgreSQL database
 - A Cloudflare R2 bucket, MinIO bucket, or another S3-compatible bucket
 - Rust toolchain if you are building the Tauri desktop app
 - At least one supported model provider API key: Anthropic, Google Gemini, or OpenAI
@@ -26,6 +27,8 @@ Website: [mikeoss.com](https://mikeoss.com)
 ## Database Setup
 
 Encore applies the ordered `.up.sql` files in `backend/src/migrations/` to the Encore-managed PostgreSQL database for the `mike` service. The first migration creates first-party users, local auth state, the application tables, and the `legacy_user_map` used to claim imported Supabase-owned data by email.
+
+The checked-in `backend/encore.app` is intentionally unlinked from Encore Cloud (`"id": ""`) so local development and `encore check` do not require access to a private Cloud app. If you want to deploy with Encore Cloud, register or link your own app from `backend` with `encore app init <name>` or `encore app link <app-id>`.
 
 For migrated deployments, run the one-off migration tool after configuring `DATABASE_URL`, `MIGRATION_SUPABASE_URL`, `MIGRATION_SUPABASE_SERVICE_ROLE_KEY`, R2 credentials, and `R2_KEY_PREFIX`:
 
@@ -89,8 +92,11 @@ npm install --prefix frontend
 
 Start the Encore backend:
 
-```bash
+```powershell
 cd backend
+$env:AUTH_JWT_SECRET = "replace-with-a-random-32-byte-hex-string"
+$env:DOWNLOAD_SIGNING_SECRET = "replace-with-a-random-32-byte-hex-string"
+$env:USER_API_KEYS_ENCRYPTION_SECRET = "replace-with-a-random-32-byte-hex-string"
 encore run
 ```
 
@@ -115,7 +121,7 @@ $env:MIKE_DESKTOP_API_BASE_URL="http://localhost:3001"
 npm run desktop:build --prefix frontend
 ```
 
-Desktop builds create a Next standalone server, package `scripts/mike-next-sidecar.cjs` into a Tauri sidecar binary, bundle the standalone output as a resource, and load `http://127.0.0.1:3070` in the webview.
+Desktop builds create a Next standalone server, copy the local Node runtime as Tauri's `mike-node` sidecar, bundle the standalone output as a resource, and load `http://127.0.0.1:3070` in the webview. On Windows the `desktop:build` script targets the NSIS installer because MSI bundling requires a working Windows Installer service.
 
 ## First Run
 
@@ -125,11 +131,13 @@ Desktop builds create a Next standalone server, package `scripts/mike-next-sidec
 
 ## Troubleshooting
 
-**Sign-up fails with a session-secret error.** Set `AUTH_JWT_SECRET` in the backend environment. Local auth signs bearer tokens with this secret.
+**Sign-up fails with a session-secret error.** Set `AUTH_JWT_SECRET` in the backend environment before `encore run` or `encore check`. For the checked-in unlinked local app, pass runtime secrets through the shell; `encore secret set` requires linking your own Encore Cloud app first.
 
 **The model picker shows a missing-key warning.** Add a key for that provider in **Account > Models & API Keys**, or configure the provider key in `backend/.env` and restart the backend.
 
 **DOC or DOCX conversion fails.** Install LibreOffice locally and restart the backend so document conversion commands are available on the process path.
+
+**Encore cannot create PostgreSQL locally.** Start Docker Desktop, then rerun `encore check "curl /health"` from `backend`.
 
 ## Useful Checks
 
@@ -137,6 +145,10 @@ Desktop builds create a Next standalone server, package `scripts/mike-next-sidec
 npm run build --prefix backend
 npm run build --prefix frontend
 npm run lint --prefix frontend
+npm run desktop:smoke-sidecar --prefix frontend
 cd backend
+$env:AUTH_JWT_SECRET = "replace-with-a-random-32-byte-hex-string"
+$env:DOWNLOAD_SIGNING_SECRET = "replace-with-a-random-32-byte-hex-string"
+$env:USER_API_KEYS_ENCRYPTION_SECRET = "replace-with-a-random-32-byte-hex-string"
 encore check "curl /health"
 ```

@@ -23,12 +23,13 @@ import {
 } from "../lib/documentVersions";
 import { ensureDocAccess } from "../lib/access";
 import { singleFileUpload } from "../lib/upload";
+import { mountedRootPaths } from "../lib/expressCompat";
 
 export const documentsRouter = Router();
 const ALLOWED_TYPES = new Set(["pdf", "docx", "doc"]);
 
 // GET /single-documents
-documentsRouter.get("/", requireAuth, async (req, res) => {
+documentsRouter.get(mountedRootPaths("/single-documents"), requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const db = createServerDb();
   const { data, error } = await db
@@ -49,7 +50,7 @@ documentsRouter.get("/", requireAuth, async (req, res) => {
 
 // POST /single-documents
 documentsRouter.post(
-  "/",
+  mountedRootPaths("/single-documents"),
   requireAuth,
   singleFileUpload("file"),
   async (req, res) => {

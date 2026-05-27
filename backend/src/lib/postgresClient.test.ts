@@ -82,6 +82,50 @@ test("inserts a row and returns selected columns", async () => {
   assert.deepEqual(exec.calls[0].params, ["user-1", "a.pdf"]);
 });
 
+test("serializes known JSONB insert values", async () => {
+  const exec = new FakeExecutor();
+  exec.rows = [{ id: "project-1" }];
+  const db = createPostgresClient(exec);
+
+  const result = await db
+    .from("projects")
+    .insert({ user_id: "user-1", shared_with: ["member@example.com"] })
+    .select("id")
+    .single();
+
+  assert.deepEqual(result, { data: { id: "project-1" }, error: null });
+  assert.equal(
+    exec.calls[0].sql,
+    'INSERT INTO "projects" ("user_id", "shared_with") VALUES ($1, $2::jsonb) RETURNING "id"',
+  );
+  assert.deepEqual(exec.calls[0].params, [
+    "user-1",
+    '["member@example.com"]',
+  ]);
+});
+
+test("serializes known JSONB update values", async () => {
+  const exec = new FakeExecutor();
+  exec.rows = [{ id: "review-1" }];
+  const db = createPostgresClient(exec);
+
+  await db
+    .from("tabular_reviews")
+    .update({ columns_config: [{ index: 0, name: "Clause" }] })
+    .eq("id", "review-1")
+    .select("id")
+    .single();
+
+  assert.equal(
+    exec.calls[0].sql,
+    'UPDATE "tabular_reviews" SET "columns_config" = $1::jsonb WHERE "id" = $2 RETURNING "id"',
+  );
+  assert.deepEqual(exec.calls[0].params, [
+    '[{"index":0,"name":"Clause"}]',
+    "review-1",
+  ]);
+});
+
 test("upserts by conflict columns and can ignore duplicates", async () => {
   const exec = new FakeExecutor();
   const db = createPostgresClient(exec);

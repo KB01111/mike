@@ -1,16 +1,25 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(not(debug_assertions))]
 use std::net::TcpStream;
+#[cfg(not(debug_assertions))]
 use std::sync::Mutex;
+#[cfg(not(debug_assertions))]
 use std::time::Duration;
+#[cfg(not(debug_assertions))]
 use tauri::{Manager, path::BaseDirectory};
+#[cfg(not(debug_assertions))]
 use tauri_plugin_shell::{
     process::{CommandChild, CommandEvent},
     ShellExt,
 };
 
+#[cfg(not(debug_assertions))]
+#[allow(dead_code)]
+// Stored in Tauri state so the Next.js sidecar process stays alive.
 struct NextSidecar(Mutex<Option<CommandChild>>);
 
+#[cfg(not(debug_assertions))]
 fn wait_for_server(host: &str, port: u16, max_attempts: u32) -> Result<(), String> {
     let addr = format!("{}:{}", host, port);
     for attempt in 1..=max_attempts {
@@ -31,14 +40,16 @@ fn wait_for_server(host: &str, port: u16, max_attempts: u32) -> Result<(), Strin
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
+        .setup(|_app| {
             #[cfg(not(debug_assertions))]
             {
-                let resource_dir = app.path().resolve("", BaseDirectory::Resource)?;
+                let resource_dir = _app.path().resolve("", BaseDirectory::Resource)?;
                 let next_dir = resource_dir.join(".next").join("standalone");
-                let sidecar = app
+                let server_js = next_dir.join("server.js");
+                let sidecar = _app
                     .shell()
-                    .sidecar("mike-next-sidecar")?
+                    .sidecar("mike-node")?
+                    .args([server_js.to_string_lossy().to_string()])
                     .env("PORT", "3070")
                     .env("HOSTNAME", "127.0.0.1")
                     .env(
@@ -46,7 +57,7 @@ fn main() {
                         next_dir.to_string_lossy().to_string(),
                     );
                 let (mut rx, child) = sidecar.spawn()?;
-                app.manage(NextSidecar(Mutex::new(Some(child))));
+                _app.manage(NextSidecar(Mutex::new(Some(child))));
 
                 tauri::async_runtime::spawn(async move {
                     while let Some(event) = rx.recv().await {

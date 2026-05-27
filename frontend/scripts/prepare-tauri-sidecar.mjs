@@ -46,16 +46,6 @@ function hostTuple() {
     }
 }
 
-function pkgTargetFor(targetTriple) {
-    if (targetTriple === "x86_64-pc-windows-msvc") return "node20-win-x64";
-    if (targetTriple === "aarch64-pc-windows-msvc") return "node20-win-arm64";
-    if (targetTriple === "x86_64-apple-darwin") return "node20-macos-x64";
-    if (targetTriple === "aarch64-apple-darwin") return "node20-macos-arm64";
-    if (targetTriple === "x86_64-unknown-linux-gnu") return "node20-linux-x64";
-    if (targetTriple === "aarch64-unknown-linux-gnu") return "node20-linux-arm64";
-    throw new Error(`Unsupported sidecar target triple: ${targetTriple}`);
-}
-
 function copyIfExists(source, destination) {
     if (!fs.existsSync(source)) return;
     fs.rmSync(destination, { recursive: true, force: true });
@@ -104,38 +94,12 @@ fs.mkdirSync(binariesDir, { recursive: true });
 
 const targetTriple = hostTuple();
 const extension = process.platform === "win32" ? ".exe" : "";
-const temporaryOutput = path.join(binariesDir, `mike-next-sidecar${extension}`);
-const finalOutput = path.join(
-    binariesDir,
-    `mike-next-sidecar-${targetTriple}${extension}`,
-);
-const pkgCli = path.join(
-    projectRoot,
-    "node_modules",
-    "@yao-pkg",
-    "pkg",
-    "lib-es5",
-    "bin.js",
-);
-const pkgCachePath =
-    process.env.PKG_CACHE_PATH || path.join(projectRoot, ".pkg-cache");
+const finalOutput = path.join(binariesDir, `mike-node-${targetTriple}${extension}`);
 
-fs.rmSync(temporaryOutput, { force: true });
 fs.rmSync(finalOutput, { force: true });
+fs.copyFileSync(process.execPath, finalOutput);
+if (process.platform !== "win32") {
+    fs.chmodSync(finalOutput, 0o755);
+}
 
-run(process.execPath, [
-    pkgCli,
-    "scripts/mike-next-sidecar.cjs",
-    "--targets",
-    pkgTargetFor(targetTriple),
-    "--output",
-    temporaryOutput,
-], {
-    env: {
-        ...process.env,
-        PKG_CACHE_PATH: pkgCachePath,
-    },
-});
-
-fs.renameSync(temporaryOutput, finalOutput);
-console.log(`Prepared Tauri sidecar: ${path.relative(projectRoot, finalOutput)}`);
+console.log(`Prepared Tauri Node sidecar: ${path.relative(projectRoot, finalOutput)}`);
