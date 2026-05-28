@@ -21,7 +21,8 @@ keys, or real client documents for initial testing.
 Only variables prefixed with `NEXT_PUBLIC_` should be assumed safe to expose to
 the browser. Service-role keys and model-provider keys should stay server-side.
 
-For frontend testing, `frontend/.env.local` should normally contain only:
+For frontend testing with `encore run --port=3001`, `frontend/.env.local`
+should normally contain only:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001

@@ -1,4 +1,4 @@
 {
-  "id": "mike",
+  "id": "",
   "lang": "typescript"
 }

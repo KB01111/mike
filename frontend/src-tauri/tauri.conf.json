@@ -27,7 +27,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/mike-next-sidecar"],
+    "icon": ["icons/icon.ico"],
+    "externalBin": ["binaries/mike-node"],
     "resources": {
       "../.next/standalone/": ".next/standalone/"
     }

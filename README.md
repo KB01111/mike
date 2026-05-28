@@ -9,7 +9,7 @@ Website: [mikeoss.com](https://mikeoss.com)
 - `frontend/` - Next.js application and Tauri v2 desktop shell
 - `frontend/src-tauri/` - Tauri v2 project that launches the packaged Next sidecar
 - `backend/` - Encore.ts app, Express API routes, document processing, and migrations
-- `backend/migrations/` - Encore PostgreSQL migrations
+- `backend/src/migrations/` - Encore PostgreSQL migrations for the `mike` service
 - `backend/schema.sql` - legacy Supabase schema reference only
 
 ## Prerequisites
@@ -17,7 +17,8 @@ Website: [mikeoss.com](https://mikeoss.com)
 - Node.js 20 or newer
 - npm
 - git
-- Encore CLI and an Encore Cloud app for the backend
+- Encore CLI
+- Docker Desktop for Encore's local PostgreSQL database
 - A Cloudflare R2 bucket, MinIO bucket, or another S3-compatible bucket
 - Rust toolchain if you are building the Tauri desktop app
 - At least one supported model provider API key: Anthropic, Google Gemini, or OpenAI
@@ -25,7 +26,9 @@ Website: [mikeoss.com](https://mikeoss.com)
 
 ## Database Setup
 
-Encore applies the ordered SQL files in `backend/migrations/` to the Encore-managed PostgreSQL database. The first migration creates first-party users, local auth state, the application tables, and the `legacy_user_map` used to claim imported Supabase-owned data by email.
+Encore applies the ordered `.up.sql` files in `backend/src/migrations/` to the Encore-managed PostgreSQL database for the `mike` service. The first migration creates first-party users, local auth state, the application tables, and the `legacy_user_map` used to claim imported Supabase-owned data by email.
+
+The checked-in `backend/encore.app` is intentionally unlinked from Encore Cloud (`"id": ""`) so local development and `encore check` do not require access to a private Cloud app. If you want to deploy with Encore Cloud, register or link your own app from `backend` with `encore app init <name>` or `encore app link <app-id>`.
 
 For migrated deployments, run the one-off migration tool after configuring `DATABASE_URL`, `MIGRATION_SUPABASE_URL`, `MIGRATION_SUPABASE_SERVICE_ROLE_KEY`, R2 credentials, and `R2_KEY_PREFIX`:
 
@@ -85,11 +88,11 @@ npm install --prefix frontend
 
 ## Run Locally
 
-Start the backend:
+Start the Encore backend on the API port the frontend expects:
 
 ```bash
 cd backend
-encore run
+encore run --port=3001
 ```
 
 Start the main app:
@@ -104,10 +107,18 @@ For the desktop shell:
 
 ```bash
 npm run desktop:dev --prefix frontend
+```
+
+For a packaged desktop build, provide the API URL at build time:
+
+```powershell
+$env:MIKE_DESKTOP_API_BASE_URL="http://localhost:3001"
 npm run desktop:build --prefix frontend
 ```
 
-Desktop builds create a Next standalone server, package `scripts/mike-next-sidecar.cjs` into a Tauri sidecar binary, bundle the standalone output as a resource, and load `http://127.0.0.1:3070` in the webview.
+Desktop builds create a Next standalone server, copy the local Node runtime as Tauri's `mike-node` sidecar, bundle the standalone output as a resource, and load `http://127.0.0.1:3070` in the webview. On Windows the `desktop:build` script targets the NSIS installer because MSI bundling requires a working Windows Installer service.
+
+If you build the desktop app with `MIKE_DESKTOP_API_BASE_URL=http://localhost:3001`, the installed app expects a local Encore backend to be running separately on that port.
 
 ## First Run
 
@@ -119,14 +130,21 @@ Desktop builds create a Next standalone server, package `scripts/mike-next-sidec
 
 **Sign-up fails with a session-secret error.** Set `AUTH_JWT_SECRET` in the backend environment. Local auth signs bearer tokens with this secret.
 
+**Encore cannot create PostgreSQL locally.** Start Docker Desktop, then rerun `encore check "curl /health"` from `backend`.
+
 **The model picker shows a missing-key warning.** Add a key for that provider in **Account > Models & API Keys**, or configure the provider key in `backend/.env` and restart the backend.
 
 **DOC or DOCX conversion fails.** Install LibreOffice locally and restart the backend so document conversion commands are available on the process path.
 
 ## Useful Checks
 
-```bash
+```powershell
 npm run build --prefix backend
 npm run build --prefix frontend
 npm run lint --prefix frontend
+$env:MIKE_DESKTOP_API_BASE_URL="http://localhost:3001"
+npm run desktop:prepare-sidecar --prefix frontend
+npm run desktop:smoke-sidecar --prefix frontend
+cd backend
+encore check "curl /health"
 ```

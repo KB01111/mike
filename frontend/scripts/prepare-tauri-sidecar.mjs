@@ -26,6 +26,15 @@ function output(command, args) {
     }).trim();
 }
 
+function npmRun(args, options = {}) {
+    const npmCli = process.env.npm_execpath;
+    if (npmCli && fs.existsSync(npmCli)) {
+        run(process.execPath, [npmCli, ...args], options);
+        return;
+    }
+    run(bin("npm"), args, options);
+}
+
 function hostTuple() {
     try {
         return output("rustc", ["--print", "host-tuple"]);
@@ -37,26 +46,55 @@ function hostTuple() {
     }
 }
 
-function pkgTargetFor(targetTriple) {
-    if (targetTriple === "x86_64-pc-windows-msvc") return "node20-win-x64";
-    if (targetTriple === "aarch64-pc-windows-msvc") return "node20-win-arm64";
-    if (targetTriple === "x86_64-apple-darwin") return "node20-macos-x64";
-    if (targetTriple === "aarch64-apple-darwin") return "node20-macos-arm64";
-    if (targetTriple === "x86_64-unknown-linux-gnu") return "node20-linux-x64";
-    if (targetTriple === "aarch64-unknown-linux-gnu") return "node20-linux-arm64";
-    throw new Error(`Unsupported sidecar target triple: ${targetTriple}`);
-}
-
 function copyIfExists(source, destination) {
     if (!fs.existsSync(source)) return;
     fs.rmSync(destination, { recursive: true, force: true });
     fs.cpSync(source, destination, { recursive: true, force: true });
 }
 
-run(bin("npm"), ["run", "build"], {
+function loadEnvFile(filePath) {
+    if (!fs.existsSync(filePath)) return;
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const equals = trimmed.indexOf("=");
+        if (equals <= 0) continue;
+        const key = trimmed.slice(0, equals).trim();
+        let value = trimmed.slice(equals + 1).trim();
+        if (
+            (value.startsWith("\"") && value.endsWith("\"")) ||
+            (value.startsWith("'") && value.endsWith("'"))
+        ) {
+            value = value.slice(1, -1);
+        }
+        if (process.env[key] === undefined) {
+            process.env[key] = value;
+        }
+    }
+}
+
+loadEnvFile(path.join(projectRoot, ".env.local"));
+
+const desktopApiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL || process.env.MIKE_DESKTOP_API_BASE_URL;
+
+if (!desktopApiBase) {
+    console.error(
+        "ERROR: Set NEXT_PUBLIC_API_BASE_URL or MIKE_DESKTOP_API_BASE_URL before building Mike desktop.",
+    );
+    console.error(
+        "Example: $env:MIKE_DESKTOP_API_BASE_URL='http://localhost:3001'; npm run desktop:build",
+    );
+    process.exit(1);
+}
+
+npmRun(["run", "build"], {
     env: {
         ...process.env,
         MIKE_DESKTOP_BUILD: "1",
+        NEXT_PUBLIC_MIKE_DESKTOP_BUILD: "1",
+        NEXT_PUBLIC_API_BASE_URL: desktopApiBase,
     },
 });
 
@@ -80,23 +118,12 @@ fs.mkdirSync(binariesDir, { recursive: true });
 
 const targetTriple = hostTuple();
 const extension = process.platform === "win32" ? ".exe" : "";
-const temporaryOutput = path.join(binariesDir, `mike-next-sidecar${extension}`);
-const finalOutput = path.join(
-    binariesDir,
-    `mike-next-sidecar-${targetTriple}${extension}`,
-);
-const pkgBinary = path.join(projectRoot, "node_modules", ".bin", bin("pkg"));
+const finalOutput = path.join(binariesDir, `mike-node-${targetTriple}${extension}`);
 
-fs.rmSync(temporaryOutput, { force: true });
 fs.rmSync(finalOutput, { force: true });
+fs.copyFileSync(process.execPath, finalOutput);
+if (process.platform !== "win32") {
+    fs.chmodSync(finalOutput, 0o755);
+}
 
-run(pkgBinary, [
-    "scripts/mike-next-sidecar.cjs",
-    "--targets",
-    pkgTargetFor(targetTriple),
-    "--output",
-    temporaryOutput,
-]);
-
-fs.renameSync(temporaryOutput, finalOutput);
-console.log(`Prepared Tauri sidecar: ${path.relative(projectRoot, finalOutput)}`);
+console.log(`Prepared Tauri Node sidecar: ${path.relative(projectRoot, finalOutput)}`);
